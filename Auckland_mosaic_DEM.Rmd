@@ -1,0 +1,803 @@
+---
+title: "Auckland_mosaic_DEM"
+author: "Kerry Lester"
+date: "13/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(gdalUtils)
+library(tmap)
+library(tmaptools)
+library(ggplot2)
+library(dplyr)
+```
+setwd(...) if not in markdown
+
+```{r}
+gdalbuildvrt(gdalfile = "*.tif", # uses all tiffs in the current folder
+             output.vrt = "dem.vrt")
+```
+
+Then, copy the virtual raster to a actual physical file:
+
+```{r}
+dem <- gdal_translate(src_dataset = "dem.vrt", 
+                      dst_dataset = "dem.tif", 
+                      output_Raster = TRUE, 
+                      options = c("BIGTIFF=YES", "COMPRESSION=LZW"))
+```
+
+Using the R-ArcGIS Bridge:the arcgisbinding Package from https://github.com/R-ArcGIS/r-bridge
+```{r}
+library(arcgisbinding)
+```
+```{r}
+arc.check_product()      
+```
+
+Basic Read/Write Functionality
+
+The first main use of the bridge is to transfer data from ArcGIS to R and vice versa. The functions contained in this category are elemental to initializing the bridge. When you are first getting started with the bridge, the functions that you will use most often include:
+
+arc.check_product()
+
+arc.open()
+
+arc.select()
+
+arc.shape()
+
+arc.shapeinfo()
+
+arc.write()
+
+```{r}
+ozone.path <- system.file("extdata", "ca_ozone_pts.shp",
+                          package="arcgisbinding")
+ozone.arc.dataset <- arc.open(ozone.path)
+```
+
+```{r}
+arc.open("C:/GISC424/Kauri/Kauri.gdb") 
+```
+
+```{r}
+#colnames(fc)
+```
+Graph
+```{r}
+require(sf)
+gndvi_2014 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "gndvi2014")
+gndvi_2015 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "gndvi2015")
+gndvi_2016 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "gndvi2016")
+gndvi_2017 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "gndvi2017")
+gndvi_2018 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "gndvi2018")
+gndvi_2019 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "gndvi2019")
+```
+
+```{r}
+rendvi_2014 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "Extract_Raster10")
+rendvi_2015 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "Extract_Ras15")
+rendvi_2016 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "rendvi2016")
+rendvi_2017 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "rendvi2017")
+rendvi_2018 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "rendvi2018")
+rendvi_2019 <- sf::st_read("C:/GISC424/Kauri/Kauri.gdb", layer = "rendvi2019")
+```
+
+```{r}
+head(rendvi_2014)
+head(rendvi_2015)
+plot(rendvi$RASTERVALU)
+
+```
+
+```{r}
+RENDVI_2014 <- rendvi_2014$RASTERVALU
+RENDVI_2015 <- rendvi_2015$RASTERVALU
+RENDVI_2016 <- rendvi_2016$RASTERVALU
+RENDVI_2017 <- rendvi_2017$RASTERVALU
+RENDVI_2018 <- rendvi_2018$RASTERVALU
+RENDVI_2019 <- rendvi_2019$RASTERVALU
+head(RENDVI_2014)
+```
+
+```{r}
+GNDVI_2014 <- gndvi_2014$RASTERVALU
+GNDVI_2015 <- gndvi_2015$RASTERVALU
+GNDVI_2016 <- gndvi_2016$RASTERVALU
+GNDVI_2017 <- gndvi_2017$RASTERVALU
+GNDVI_2018 <- gndvi_2018$RASTERVALU
+GNDVI_2019 <- gndvi_2019$RASTERVALU
+head(GNDVI_2014)
+```
+```{r}
+rendvi <- data.frame (rendvi_2014, rendvi_2015, rendvi_2016, rendvi_2017, rendvi_2018, rendvi_2019)
+RENDVI <- data.frame (RENDVI_2014, RENDVI_2015, RENDVI_2016, RENDVI_2017, RENDVI_2018, RENDVI_2019) # 
+GNDVI <- data.frame (GNDVI_2014, GNDVI_2015, GNDVI_2016, GNDVI_2017, GNDVI_2018, GNDVI_2019)
+
+
+
+head(rendvi)
+tail(rendvi)
+head(RENDVI)
+head(GNDVI)
+``` 
+
+```{r RED EDGE NDVI BOXPLOT}
+rededge_NDVI <- ggplot(NULL, aes(x=x))+
+  geom_boxplot(data = RENDVI,aes(y = RENDVI_2014, x = "2014"))+    
+  geom_boxplot(data = RENDVI,aes(y = RENDVI_2015, x = "2015"))+ 
+  geom_boxplot(data = RENDVI,aes(y = RENDVI_2016, x = "2016" ))+
+  geom_boxplot(data = RENDVI,aes(y = RENDVI_2017, x = "2017"))+
+  geom_boxplot(data = RENDVI,aes(y = RENDVI_2018, x = "2018" ))+
+  geom_boxplot(data = RENDVI,aes(y = RENDVI_2019, x = "2019")) +
+  
+  xlab("Year")+
+  ylab("RED EDGE NDVI VALUE")+
+  labs (title = "RED EDGE NDVI Health changes 2014-2019")
+rededge_NDVI
+```
+```{r}
+library(dplyr)
+mean_ndvi <- colMeans(x=RENDVI, na.rm = TRUE) #find mean of all columns in dataframe
+
+  
+mean(RENDVI_2014)
+mean(RENDVI_2015)
+mean(RENDVI_2016)
+mean(RENDVI_2017)
+mean(RENDVI_2018)
+mean(RENDVI_2019)
+
+mean(RENDVI[,1]) 
+
+
+stat(RENDVI)
+mean_ndvi
+```
+```{r RED EDGE NDVI LINE}
+rededge_NDVI <- ggplot(RENDVI, aes(x=x))+
+  geom_line(data = RENDVI,aes(y = RENDVI_2014, x = "2014"))+    
+  geom_line(data = RENDVI,aes(y = RENDVI_2015, x = "2015"))+ 
+  geom_line(data = RENDVI,aes(y = RENDVI_2016, x = "2016" ))+
+  geom_line(data = RENDVI,aes(y = RENDVI_2017, x = "2017"))+
+  geom_line(data = RENDVI,aes(y = RENDVI_2018, x = "2018" ))+
+  geom_line(data = RENDVI,aes(y = RENDVI_2019, x = "2019")) +
+  
+  xlab("Year")+
+  ylab("RED EDGE NDVI VALUE")+
+  labs (title = "RED EDGE NDVI Health changes 2014-2019")
+rededge_NDVI
+```
+```{r}
+# healthy <= 0.9, moderate <= 0.3, declining health <= 0.25, and unhealthy <= 0.16
+ #naming elements with a value and assigning to the vector called classify_health by year 
+# which elements greater than -1 AND less than = 0.16? (x>-1) & (x<0.16)
+
+unhealthy <- RENDVI[(RENDVI >=-1) & (RENDVI <=0.16)]
+declining <- RENDVI[(RENDVI >0.16) & (RENDVI <=0.25)]
+moderate <- RENDVI[(RENDVI >0.25) & (RENDVI <=0.3)]
+healthy <- RENDVI[(RENDVI >0.3) & (RENDVI <=0.9)]
+head(moderate)
+#classify_health <- (RENDVI c(unhealthy >= -1 & <= 0.16))
+```
+
+
+```{r}
+unhealthy_2014 <- RENDVI_2014[(RENDVI_2014 >=-1) & (RENDVI_2014 <=0.16)]
+declining_2014 <- RENDVI_2014[(RENDVI_2014 >0.16) & (RENDVI_2014 <=0.25)]
+moderate_2014 <- RENDVI_2014[(RENDVI_2014 >0.25) & (RENDVI_2014 <=0.3)]
+healthy_2014 <- RENDVI_2014[(RENDVI_2014 >0.3) & (RENDVI_2014 <=0.9)]
+#head(moderate_2014)
+length(unhealthy_2014)
+length(declining_2014)
+length(moderate_2014)
+length(healthy_2014)
+```
+```{r}
+unhealthy_2015 <- RENDVI_2015[(RENDVI_2015 >=-1) & (RENDVI_2015 <=0.16)]
+declining_2015 <- RENDVI_2015[(RENDVI_2015 >0.16) & (RENDVI_2015 <=0.25)]
+moderate_2015 <- RENDVI_2015[(RENDVI_2015 >0.25) & (RENDVI_2015 <=0.3)]
+healthy_2015 <- RENDVI_2015[(RENDVI_2015 >0.3) & (RENDVI_2015 <=0.9)]
+#head(moderate_2015)
+length(unhealthy_2015)
+length(declining_2015)
+length(moderate_2015)
+length(healthy_2015)
+```
+
+```{r}
+unhealthy_2016 <- RENDVI_2016[(RENDVI_2016 >=-1) & (RENDVI_2016 <=0.16)]
+declining_2016 <- RENDVI_2016[(RENDVI_2016 >0.16) & (RENDVI_2016 <=0.25)]
+moderate_2016 <- RENDVI_2016[(RENDVI_2016 >0.25) & (RENDVI_2016 <=0.3)]
+healthy_2016 <- RENDVI_2016[(RENDVI_2016 >0.3) & (RENDVI_2016 <=0.9)]
+#head(moderate_2016)
+length(unhealthy_2016)
+length(declining_2016)
+length(moderate_2016)
+length(healthy_2016)
+```
+
+```{r}
+unhealthy_2017 <- RENDVI_2017[(RENDVI_2017 >=-1) & (RENDVI_2017 <=0.16)]
+declining_2017 <- RENDVI_2017[(RENDVI_2017 >0.16) & (RENDVI_2017 <=0.25)]
+moderate_2017 <- RENDVI_2017[(RENDVI_2017 >0.25) & (RENDVI_2017 <=0.3)]
+healthy_2017 <- RENDVI_2017[(RENDVI_2017 >0.3) & (RENDVI_2017 <=0.9)]
+#head(moderate_2017)
+length(unhealthy_2017)
+length(declining_2017)
+length(moderate_2017)
+length(healthy_2017)
+```
+
+```{r}
+unhealthy_2018 <- RENDVI_2018[(RENDVI_2018 >=-1) & (RENDVI_2018 <=0.16)]
+declining_2018 <- RENDVI_2018[(RENDVI_2018 >0.16) & (RENDVI_2018 <=0.25)]
+moderate_2018 <- RENDVI_2018[(RENDVI_2018 >0.25) & (RENDVI_2018 <=0.3)]
+healthy_2018 <- RENDVI_2018[(RENDVI_2018 >0.3) & (RENDVI_2018 <=0.9)]
+#head(moderate_2018)
+length(unhealthy_2018)
+length(declining_2018)
+length(moderate_2018)
+length(healthy_2018)
+```
+
+```{r}
+unhealthy_2019 <- RENDVI_2019[(RENDVI_2019 >=-1) & (RENDVI_2019 <=0.16)]
+declining_2019 <- RENDVI_2019[(RENDVI_2019 >0.16) & (RENDVI_2019 <=0.25)]
+moderate_2019 <- RENDVI_2019[(RENDVI_2019 >0.25) & (RENDVI_2019 <=0.3)]
+healthy_2019 <- RENDVI_2019[(RENDVI_2019 >0.3) & (RENDVI_2019 <=0.9)]
+#head(moderate_2019)
+
+length(unhealthy_2019)
+length(declining_2019)
+length(moderate_2019)
+length(healthy_2019)
+```
+
+```{r page 11}
+#load the data
+prefs <- array(c(625,245,45,24,500,258,
+                 605,136,75,12,545,411,
+                 367,109,111,17,378,409,
+                 513,1620,1879,2057,687,1032),
+               dim=c(6,4))
+prefs
+```
+
+```{r}
+#Name the rows and columns
+dimnames(prefs) <- list(c("2014", "2015", "2016", "2017" ,"2018", "2019"), 
+                        c("unhealthy", "declining", "moderate", "healthy"  ))
+prefs
+```
+
+```{r excluding healthy}
+#load the data
+prefs1 <- array(c(625,245,45,24,500,258,
+                 605,136,75,12,545,411,
+                 367,109,111,17,378,409),
+               dim=c(6,3))
+prefs1
+
+```
+displayt without the health column
+```{r} 
+
+#Name the rows and columns
+dimnames(prefs1) <- list(c("2014", "2015", "2016", "2017" ,"2018", "2019"), 
+                        c("unhealthy", "declining", "moderate"  ))
+prefs1
+```
+
+We can pick out one age group using its column name
+```{r}
+prefs[,"unhealthy"]
+plot
+```
+```{r}
+library(ggplot2)
+library(reshape2)
+```
+
+```{r}
+d <- ggplot(melt(prefs), aes(x=Var1, y=value, col=Var2))+
+                                          geom_line(size=1.5)+
+  scale_color_manual(values = c("red", "darkorange1", "darkolivegreen", "green", "violet" )) +
+  labs(color="Indices") +
+   xlab("Year")+
+  ylab("Number of kauri trees")+
+  labs (title = "Changes in tree health over time")
+d
+```
+```{r graph without the healthy column}
+d1 <- ggplot(melt(prefs1), aes(x=Var1, y=value, col=Var2))+
+                                          geom_line(size =1.5)+
+  scale_color_manual(values = c("red", "darkorange1", "darkolivegreen", "green", "violet" )) +
+  labs(color="Indices") +
+   xlab("Year")+
+  ylab("Number of kauri trees")+
+  labs (title = "Changes in tree health over time, excluding healthy trees")
+d1
+```
+
+```{r}
+health_plots <- ggplot(prefs ) +
+  
+  geom_line(aes(prefs)) +
+
+  xlab("Unique Tree Identifiication number")+
+  ylab("RED EGDE NDVI Value")+
+  labs (title = "RED EDGE NDVI 2014-2019")
+health_plots
+```
+To fully interpret this table we better know that the proportions in the four age groups are, from oldest to youngest, 20%, 25%, 40% and 15%.
+Elementwise arithmetic works with arrays the same way it works with vectors- we can multiply each elementof an array by the corresponding value in another array. To compute the proportions of people voting for each candidate we first load up a matrix of population proportions:
+
+```{r}
+props.vec <- c(0.20, 0.25, 0.40, 0.15)
+props.vec
+```
+
+```{r}
+props.mat <- array(props.vec, dim = c(4,3))
+props.mat
+```
+
+This has age running down the rows not accross the columns, so we transpose the *props.mat* matrix using the **t()** function. 
+```{r}
+props.mat <- t(props.mat)
+props.mat
+```
+
+Now finally by multipling the two matrices together gives us the proportions we want
+
+```{r}
+pop.prefs <- prefs*props.mat
+pop.prefs
+```
+
+We can add these proportions up to give us interesting results 
+```{r}
+sum(pop.prefs)
+```
+
+Add along all the ROWS (dimension 1)
+```{r}
+apply(pop.prefs, MARGIN = 1, FUN = sum)
+```
+
+Add along the COLUMNS (dimension 2) 
+```{r}
+apply(pop.prefs, MARGIN = 2, FUN = sum)
+```
+
+We'll learn more about the *apply* statement later, for now just notice how that it takes an object (in this case *pop.prefs* ) and applies a function (in this case *sum()* ) to **subsets** of the object rather than the whole object.  
+
+This allows us to break our into data into groups, and see differences between them.  
+  
+```{r}
+
+# View the feature class
+plot(RENDVI)
+plot(GNDVI)
+```
+
+```{r}
+#str(NDVI)
+#hist(NDVI_2014)
+hist(RENDVI_2014)
+hist(GNDVI_2014)
+```
+
+```{r NDVI DENSITY}
+#plot(NDVI) #scatter plot of all data
+
+
+library(ggfortify)
+
+
+fed <- ggplot(RENDVI, aes(x=x) ) +
+  geom_freqpoly(binwidth =0.01, aes(x = 1, stat(density) )) +
+  xlab("NDVI Value")+
+  labs (title = "Normailsed Difference Vegetation Index 2014-2019")
+
+
+fed #disply graph
+
+```
+
+```{r RED EDGE NDVI DENSITY}
+#plot(NDVI) #scatter plot of all data
+
+
+library(ggfortify)
+
+
+REDEDGE <- ggplot(RENDVI, aes(x=x) ) +
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2014, stat(density) , colour="2014" )) +
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2015, stat(density) , colour="2015"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2016, stat(density) , colour="2016"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2017, stat(density) , colour="2017"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2018, stat(density) , colour="2018"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2019, stat(density) , colour="2019"))+
+  xlab("RED EGDE NDVI Value")+
+  labs (title = "RED EDGE Normailsed Distribution Vegetation Index density 2014-2019")
+
+
+REDEDGE #disply graph
+
+```
+
+```{r}
+str(rendvi)
+head(rendvi)
+```
+
+```{r}
+ordered <- order(rendvi$RASTERVALU)
+rearranged <- arrange(rendvi,RASTERVALU)
+```
+
+```{r}
+ordered <- order(rendvi$RASTERVALU)
+head(ordered)
+head(rearranged)
+
+
+```
+```{r}
+str(rearranged)
+```
+
+```{r}
+sub_rearranged <- rearranged[ ,c(1,3,7,11,15,19,23)]
+head(sub_rearranged)
+
+rearranged$row_num <- seq.int(nrow(rearranged))
+rearranged
+
+sub_rearranged$row_num <- seq.int(nrow(sub_rearranged))
+head(sub_rearranged)
+```
+
+```{r }
+(year2015 <- filter(sub_rearranged, RASTERVALU >= RASTERVALU.1))
+(year2016 <- filter(sub_rearranged, RASTERVALU >= RASTERVALU.2))
+(year2017 <- filter(sub_rearranged, RASTERVALU >= RASTERVALU.3))
+(year2018 <- filter(sub_rearranged, RASTERVALU >= RASTERVALU.4))
+(year2019 <- filter(sub_rearranged, RASTERVALU >= RASTERVALU.5))
+
+```
+```{r}
+(sick_counts_2014 <- filter(sub_rearranged, RASTERVALU<=0.2))
+(sick_counts_2015 <- filter(sub_rearranged, RASTERVALU.1<=0.2))
+(sick_counts_2016 <- filter(sub_rearranged, RASTERVALU.2<=0.2))
+(sick_counts_2017 <- filter(sub_rearranged, RASTERVALU.3<=0.2))
+(sick_counts_2018 <- filter(sub_rearranged, RASTERVALU.4<=0.2))
+(sick_counts_2019 <- filter(sub_rearranged, RASTERVALU.5<=0.2))
+```
+
+```{r}
+rededge_dot <- ggplot(NULL, aes(x=x))+
+  geom_point(data = year2015,aes(y = row_num, x = RASTERVALU.1, colour="2015"))+    
+  geom_point(data = year2016,aes(y = row_num, x = RASTERVALU.2, colour="2016"))+ 
+  geom_point(data = year2017,aes(y = row_num, x = RASTERVALU.3 , colour="2017"))+
+  geom_point(data = year2018,aes(y = row_num, x = RASTERVALU.4, colour="2018"))+
+  geom_point(data = year2019,aes(y = row_num, x = RASTERVALU.5, colour="2019"))+
+  geom_point(data = sub_rearranged,aes(y = row_num, x = RASTERVALU, colour = "2014")) +
+  
+  xlab("RED EGDE NDVI Value ")+
+  ylab("Tree ID Number")+
+  labs (title = "RED EDGE NDVI SPECIFIC TREE Health changes 2014-2019")
+rededge_dot
+
+#flip x and y axis
+rededge_dot1 <- ggplot(NULL, aes(x=x))+
+  geom_point(data = year2015,aes(y = RASTERVALU.1, x = row_num, colour="2015"))+    
+  geom_point(data = year2016,aes(y = RASTERVALU.2, x = row_num, colour="2016"))+ 
+  geom_point(data = year2017,aes(y = RASTERVALU.3, x = row_num , colour="2017"))+
+  geom_point(data = year2018,aes(y = RASTERVALU.4, x = row_num, colour="2018"))+
+  geom_point(data = year2019,aes(y = RASTERVALU.5, x = row_num, colour="2019"))+
+  geom_point(data = sub_rearranged,aes(y = RASTERVALU, x = row_num, colour = "2014")) +
+  
+  xlab("Tree ID Number")+
+  ylab("RED EGDE NDVI Value")+
+  labs (title = "RED EDGE NDVI SPECIFIC TREE Health changes 2014-2019")
+rededge_dot1
+```
+
+```{r}
+library(rowr)
+unhealthy_2014 <- rearranged$RASTERVALU <= 0.16
+declining_2014 <- rearranged$RASTERVALU <=0.25 & >=0.16
+moderate_2014 <- rearranged$RASTERVALU <= 0.30
+healthy_2014 <- rearranged$RASTERVALU 0.3<= 0.60
+head(healthy_2014)
+sum(unhealthy_2014)
+
+```
+
+```{r create new df for creating boolean}
+value1 <- sub_rearranged[ ,c(1,2,3,8)] # columns including: point id, RASTERVALU,RASTERVALU.1 and row_num
+head(value1)
+value2 <- sub_rearranged[ ,c(1,2,4,8)] 
+value3 <- sub_rearranged[ ,c(1,2,5,8)]
+value4 <- sub_rearranged[ ,c(1,2,6,8)]
+value5 <- sub_rearranged[ ,c(1,2,7,8)]
+```
+
+```{r REDEDGE NDVI first year is greater than other years to plot}
+first_year <- sub_rearranged[,2]>= sub_rearranged[,3]
+head(first_year)
+sum(first_year)
+sub_rearranged[first_year]
+```
+
+```{r}
+sub_rearranged[,2]>= sub_rearranged[,3]
+sub_rearranged[,2]>= sub_rearranged[,4]
+sub_rearranged[,2]>= sub_rearranged[,5]
+sub_rearranged[,2]>= sub_rearranged[,6]
+sub_rearranged[,2]>= sub_rearranged[,7]
+
+```
+
+```{r}
+sub_rearrangedq <- rearranged [ ,c(3,7,11,15,19,23)]
+head(sub_rearrangedq)
+```
+
+```{r}
+head(rearranged)
+
+```
+
+```{r}
+rededge <- ggplot(rearranged, aes(x=x) ) +
+  
+  geom_line(aes(x = row_num, y = RASTERVALU.1, colour = "2015")) +
+  geom_line(aes(x = row_num, y = RASTERVALU.2, colour = "2016"))+ 
+  geom_line(aes(x = row_num, y = RASTERVALU.3, colour = "2017"))+
+  geom_line(aes(x = row_num, y = RASTERVALU.4, colour = "2018"))+
+  geom_line(aes(x = row_num, y = RASTERVALU.5, colour = "2019"))+
+  geom_line(aes(x = row_num, y = RASTERVALU, colour = "2014")) +
+  xlab("Unique Tree Identifiication number")+
+  ylab("RED EGDE NDVI Value")+
+  labs (title = "RED EDGE NDVI 2014-2019")
+rededge
+ 
+```
+
+```{r}
+rededge_dot <- ggplot(rearranged, aes(x=x))+
+  geom_point(aes(y = row_num, x = RASTERVALU.1, colour="2015"))+    
+  geom_point(aes(y = row_num, x = RASTERVALU.2, colour="2016"))+
+  geom_point(aes(y = row_num, x = RASTERVALU.3, colour="2017"))+
+  geom_point(aes(y = row_num, x = RASTERVALU.4, colour="2018"))+
+  geom_point(aes(y = row_num, x = RASTERVALU.5 , colour="2019"))+
+  geom_point(aes(y = row_num, x = RASTERVALU, colour = "2014")) +
+  
+  xlab("RED EGDE NDVI Value ")+
+  ylab("Tree ID Number")+
+  labs (title = "RED EDGE NDVI SPECIFIC TREE Health changes 2014-2019")
+rededge_dot
+```
+
+```{r}
+rededge_dot_years <- ggplot(rearranged, aes(x=x))+
+  geom_point(aes(y = row_num, x = RASTERVALU.1, colour="2015"))+    
+ 
+  geom_point(aes(y = row_num, x = RASTERVALU.5 , colour="2019"))+
+  geom_point(aes(y = row_num, x = RASTERVALU, colour = "2014")) +
+  
+  xlab("RED EGDE NDVI Value ")+
+  ylab("Tree ID Number")+
+  labs (title = "RED EDGE NDVI SPECIFIC TREE Health changes 2014-2019")
+rededge_dot_years
+```
+
+```{r}
+
+```
+
+```{r}
+REDEDGE <- ggplot(RENDVI, aes(x=x) ) +
+  geom_line(binwidth =0.01, aes(x = RENDVI_2014, stat(density) , colour="2014" )) +
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2015, stat(density) , colour="2015"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2016, stat(density) , colour="2016"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2017, stat(density) , colour="2017"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2018, stat(density) , colour="2018"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2019, stat(density) , colour="2019"))+
+  xlab("RED EGDE NDVI Value")+
+  labs (title = "RED EDGE Normailsed Distribution Vegetation Index point changes 2014-2019")
+
+
+REDEDGE #disply graph
+```
+
+```{r Frequency polygon}
+# A frequency polygon is very similar to a histogram, but uses line instead of bars
+fp <- ggplot(NDVI, aes(x=x) ) +
+  geom_freqpoly(binwidth =0.01, aes(x = NDVI_2014, stat="bin" , colour="2014" )) +
+  geom_freqpoly(binwidth =0.01, aes(x = NDVI_2015, stat="bin" , colour="2015"))+
+  geom_freqpoly(binwidth =0.01, aes(x = NDVI_2016, stat="bin" , colour="2016"))+
+  geom_freqpoly(binwidth =0.01, aes(x = NDVI_2017, stat="bin" , colour="2017"))+
+  geom_freqpoly(binwidth =0.01, aes(x = NDVI_2018, stat="bin" , colour="2018"))+
+  geom_freqpoly(binwidth =0.01, aes(x = NDVI_2019, stat="bin" , colour="2019"))+
+  xlab("NDVI Value")+
+  ylab("Number of kauri trees")+
+  labs (title = "Kauri Normailsed Distribution Vegetation Index by year 2014-2019")
+
+fp
+
+
+
+```
+```{r Frequency polygon}
+# A frequency polygon is very similar to a histogram, but uses line instead of bars
+GREEN_NDVI <- ggplot(NDVI, aes(x=x) ) +
+  geom_freqpoly(binwidth =0.01, aes(x = GNDVI_2014, stat="bin" , colour="2014" )) +
+  geom_freqpoly(binwidth =0.01, aes(x = GNDVI_2015, stat="bin" , colour="2015"))+
+  geom_freqpoly(binwidth =0.01, aes(x = GNDVI_2016, stat="bin" , colour="2016"))+
+  geom_freqpoly(binwidth =0.01, aes(x = GNDVI_2017, stat="bin" , colour="2017"))+
+  geom_freqpoly(binwidth =0.01, aes(x = GNDVI_2018, stat="bin" , colour="2018"))+
+  geom_freqpoly(binwidth =0.01, aes(x = GNDVI_2019, stat="bin" , colour="2019"))+
+  xlab("Green NDVI Value")+
+  ylab("Number of kauri trees")+
+  labs (title = "Kauri Green Normailsed Distribution Vegetation Index by year 2014-19")
+
+GREEN_NDVI
+
+
+
+```
+```{r Frequency polygon}
+# A frequency polygon is very similar to a histogram, but uses line instead of bars
+fpRED <- ggplot(RENDVI, aes(x=x) ) +
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2014, stat="bin" , colour="2014" )) +
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2015, stat="bin" , colour="2015"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2016, stat="bin" , colour="2016"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2017, stat="bin" , colour="2017"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2018, stat="bin" , colour="2018"))+
+  geom_freqpoly(binwidth =0.01, aes(x = RENDVI_2019, stat="bin" , colour="2019"))+
+  xlab("RED EDGE NDVI Value")+
+  ylab("Number of kauri trees")+
+  labs (title = "Kauri Red-edge Normailsed Distribution Vegetation Index by year 2014-19")
+
+fpRED
+```
+
+
+
+```{r}
+p <- ggplot(NDVI, aes(x=x) ) +
+  # Top 2014
+  geom_density( aes(x = NDVI_2014, y = ..density..), colour="2014" ) +
+  geom_label( aes(x=1, y= 6, label="2014"), color="2014") +
+  
+  # 2015
+  geom_density( aes(x = NDVI_2015, y = ..density..), colour= "2015") +
+  geom_label( aes(x=1, y=5, label="2015"), color="2015") +
+  xlab("NDVI Value")+
+  
+  #2016
+  geom_density( aes(x = NDVI_2016, y = ..density..), colour= "2016") +
+  geom_label( aes(x=1, y=4, label="2016"), color="2016") +
+  
+  
+  #2017
+  geom_density( aes(x = NDVI_2017, y = ..density..), colour= "2017") +
+  geom_label( aes(x=1, y=3, label="2017"), color="2017") +
+  
+  #2018
+  geom_density( aes(x = NDVI_2018, y = ..density..), colour= "2018") +
+  geom_label( aes(x=1, y=2, label="2018"), color="2018") +
+  
+  # Bottom 2019
+  geom_density( aes(x = NDVI_2019, y = ..density..), colour= "2019") +
+  geom_label( aes(x=1, y=1, label="2019"), color="2019") +
+  labs (title = "KAURI Normailsed Distribution Vegetation Index density 2014-2019")
+
+p 
+```
+
+
+
+```{r}
+pG <- ggplot(GNDVI, aes(x=x) ) +
+  # Top 2014
+  geom_density( aes(x = GNDVI_2014, y = ..density..), colour="2014" ) +
+  geom_label( aes(x=1, y= 6, label="2014"), color="2014") +
+  
+  # 2015
+  geom_density( aes(x = GNDVI_2015, y = ..density..), colour= "2015") +
+  geom_label( aes(x=1, y=5, label="2015"), color="2015") +
+  xlab("NDVI Value")+
+  
+  #2016
+  geom_density( aes(x = GNDVI_2016, y = ..density..), colour= "2016") +
+  geom_label( aes(x=1, y=4, label="2016"), color="2016") +
+  
+  
+  #2017
+  geom_density( aes(x = GNDVI_2017, y = ..density..), colour= "2017") +
+  geom_label( aes(x=1, y=3, label="2017"), color="2017") +
+  
+  #2018
+  geom_density( aes(x = GNDVI_2018, y = ..density..), colour= "2018") +
+  geom_label( aes(x=1, y=2, label="2018"), color="2018") +
+  
+  # Bottom 2019
+  geom_density( aes(x = GNDVI_2019, y = ..density..), colour= "2019") +
+  geom_label( aes(x=1, y=1, label="2019"), color="2019") +
+  xlab("Green NDVI Value")+
+  labs (title = "Kauri Density for the Green Normailsed Distribution Vegetation Index 2014-2019")
+  
+
+
+pG 
+```
+
+```{r}
+pdfREDE <- ggplot(RENDVI, aes(x=x) ) +
+  # Top 2014
+  geom_density( aes(x = RENDVI_2014, y = ..density..), colour="2014" ) +
+  geom_label( aes(x=1, y= 6, label="2014"), color="2014") +
+  
+  # 2015
+  geom_density( aes(x = RENDVI_2015, y = ..density..), colour= "2015") +
+  geom_label( aes(x=1, y=5, label="2015"), color="2015") +
+  xlab("NDVI Value")+
+  
+  #2016
+  geom_density( aes(x = RENDVI_2016, y = ..density..), colour= "2016") +
+  geom_label( aes(x=1, y=4, label="2016"), color="2016") +
+  
+  
+  #2017
+  geom_density( aes(x = RENDVI_2017, y = ..density..), colour= "2017") +
+  geom_label( aes(x=1, y=3, label="2017"), color="2017") +
+  
+  #2018
+  geom_density( aes(x = RENDVI_2018, y = ..density..), colour= "2018") +
+  geom_label( aes(x=1, y=2, label="2018"), color="2018") +
+  
+  # Bottom 2019
+  geom_density( aes(x = RENDVI_2019, y = ..density..), colour= "2019") +
+  geom_label( aes(x=1, y=1, label="2019"), color="2019") +
+  labs (title = "Kauri Density Plot Red-Edge Normailsed Distribution Vegetation Index 2014-2019")+
+  xlab("RED EDGE NDVI Value")
+
+pdfREDE
+```
+
+
+
+```
+
+{r Import geodatabase from arcpro}
+require(rgdal)
+
+# The input file geodatabase
+#ak <- st_read("akregion-tb-06.shp")
+fgdb <- "C:/GISC424/Kauri/Kauri.gdb"
+
+# List all feature classes in a file geodatabase
+subset(ogrDrivers(), grepl("GDB", name))
+fc_list <- ogrListLayers(fgdb)
+print(fc_list)
+
+# Read the feature class
+fc <- readOGR(dsn=fgdb,layer="rendvi2019")
+
+# Determine the FC extent, projection, and attribute information
+summary(fc)
+
+# View the feature class
+plot(fc$RASTERVALU)
