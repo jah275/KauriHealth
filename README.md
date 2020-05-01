@@ -37,7 +37,20 @@ Completed R scripts:
 Explore ARCPRO Script MODEL BUILDER usage
 Some sort of Python bridge
 
-Learn machine learning processes of identifying trees/vegetation
+Learn machine learning processes of identifying trees/vegetation in python
+
+ 1) Gather LiDAR data| DONE |
+            
+     2) Collect Satelite imagery |have from 2012 to 2019 in landsat-8 30m resolution which is too coarse, RapidEye is daily and 2-5m resolution 
+     3)
+     4)
+     
+     ...n) create dataframe for python analysis for making plots/infographics
+     n+1) What statistical analysis are we going to do that show:
+          a) how kauri vegetation health has changed over time?
+          b) explain the relationships between seasonal changes in vegetation indices values.
+          c) add a layer showing roads/walking paths/rivers and streams
+     
 
 Resources:
 1) Install python deep learning frameworks for ArcGIS https://pro.arcgis.com/en/pro-app/help/analysis/image-analyst/install-deep-learning-frameworks.htm
