@@ -15,7 +15,7 @@ Identify and Create Process chart!
      n+1) What statistical analysis are we going to do that show:
           a) how kauri vegetation health has changed over time?
           b) explain the relationships between seasonal changes in vegetation indices values.
-          c)
+          c) add a layer showing roads/walking paths/rivers and streams
      
      
      
